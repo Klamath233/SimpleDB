@@ -1,3 +1,4 @@
+// Apr 17, 2014. Code commented by Xi Han.
 package simpledb;
 
 import java.io.Serializable;
@@ -35,10 +36,7 @@ public class TupleDesc implements Serializable {
         }
     }
 
-    /**
-     * Private Fields.
-     */
-    
+ 	// The container for holding items.   
     private Vector<TDItem> items;
     
     /**
@@ -47,7 +45,6 @@ public class TupleDesc implements Serializable {
      *        that are included in this TupleDesc
      * */
     public Iterator<TDItem> iterator() {
-        // some code goes here
         return this.items.iterator();
     }
 
@@ -64,21 +61,7 @@ public class TupleDesc implements Serializable {
      *            array specifying the names of the fields. Note that names may
      *            be null.
      */
-    public TupleDesc(Type[] typeAr, String[] fieldAr) /* throws DbException */ {
-        // some code goes here
-    	
-    	// Validate the passed-in arrays.
-//    	if (typeAr == null || fieldAr == null) {
-//    		throw new DbException("Null parameter(s).");
-//    	}
-//    	
-//    	if (typeAr.length < 1) {
-//    		throw new DbException("Parameter typeAr has length less than 1.");
-//    	}
-//    	
-//    	if (typeAr.length != fieldAr.length) {
-//    		throw new DbException("Two arrays has different length.");
-//    	}
+    public TupleDesc(Type[] typeAr, String[] fieldAr) {
     	
     	this.items = new Vector<TDItem>();
     	for (int i = 0; i < typeAr.length; i++) {
@@ -94,18 +77,8 @@ public class TupleDesc implements Serializable {
      *            array specifying the number of and types of fields in this
      *            TupleDesc. It must contain at least one entry.
      */
-    public TupleDesc(Type[] typeAr) /* throws DbException */ {
-        // some code goes here
-    	
-    	// Validate the passed-in array.
-//    	if (typeAr == null) {
-//    		throw new DbException("Null parameter(s).");
-//    	}
-//    	
-//    	if (typeAr.length < 1) {
-//    		throw new DbException("Parameter typeAr has length less than 1.");
-//    	}
-//    	
+    public TupleDesc(Type[] typeAr) {
+
     	this.items = new Vector<TDItem>();
     	for (int i = 0; i < typeAr.length; i++) {
     		this.items.add(new TDItem(typeAr[i], null));
@@ -116,7 +89,6 @@ public class TupleDesc implements Serializable {
      * @return the number of fields in this TupleDesc
      */
     public int numFields() {
-        // some code goes here
         return this.items.size();
     }
 
@@ -169,7 +141,6 @@ public class TupleDesc implements Serializable {
      *             if no field with a matching name is found.
      */
     public int fieldNameToIndex(String name) throws NoSuchElementException {
-        // some code goes here
     	for (int i = 0; i < this.items.size(); i++) {
     		if (this.items.get(i).fieldName != null &&
     				name != null &&
@@ -185,7 +156,7 @@ public class TupleDesc implements Serializable {
      *         Note that tuples from a given TupleDesc are of a fixed size.
      */
     public int getSize() {
-        // some code goes here
+        // Calculate the size of a tuple by calling Type's getLen method.
     	int accumulator = 0;
     	for (Iterator<TDItem> it = this.items.iterator(); it.hasNext();) {
     		accumulator += it.next().fieldType.getLen();

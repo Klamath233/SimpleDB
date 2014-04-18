@@ -31,7 +31,7 @@ public class SeqScan implements DbIterator {
      *            tableAlias.null, or null.null).
      */
     public SeqScan(TransactionId tid, int tableid, String tableAlias) {
-        // some code goes here
+		// Initialization.
     	this.tableId = tableid;
     	this.tableAlias = tableAlias;
     	this.iterator = Database.getCatalog().getDatabaseFile(this.tableId).iterator(null);
@@ -51,7 +51,6 @@ public class SeqScan implements DbIterator {
      * */
     public String getAlias()
     {
-        // some code goes here
         return this.tableAlias;
     }
 
@@ -68,7 +67,6 @@ public class SeqScan implements DbIterator {
      *            tableAlias.null, or null.null).
      */
     public void reset(int tableid, String tableAlias) {
-        // some code goes here
     	this.tableId = tableid;
     	this.tableAlias = tableAlias;
     	this.iterator = Database.getCatalog().getDatabaseFile(this.tableId).iterator(null);
@@ -79,7 +77,8 @@ public class SeqScan implements DbIterator {
     }
 
     public void open() throws DbException, TransactionAbortedException {
-        // some code goes here
+		// Since the functionality has been implemented in HeapFile.iterator() method, 
+		// simply call the related method of the iterator is enough.
     	this.iterator.open();
     }
 
@@ -93,14 +92,15 @@ public class SeqScan implements DbIterator {
      *         prefixed with the tableAlias string from the constructor.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
     	TupleDesc original_td = Database.getCatalog().getTupleDesc(this.tableId);
     	Type[] typeAr = new Type[original_td.numFields()];
     	String[] fieldAr = new String[original_td.numFields()];
     	
     	for (int i = 0; i < original_td.numFields(); i++) {
     		typeAr[i] = original_td.getFieldType(i);
-    		fieldAr[i] = new String(this.tableAlias).concat("").concat(original_td.getFieldName(i));
+			
+			// Make prefixed field for joining.
+    		fieldAr[i] = new String(this.tableAlias).concat(".").concat(original_td.getFieldName(i));
     	}
         return new TupleDesc(typeAr, fieldAr);
     }

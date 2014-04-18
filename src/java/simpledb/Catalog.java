@@ -1,3 +1,5 @@
+// Apr 17, 2014. Code commented by Xi Han.
+
 package simpledb;
 
 import java.io.BufferedReader;
@@ -18,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Catalog {
 
-	// Comments needed.
+	// A table class is declared to represent a relation.
 	private class Table {
 		private DbFile dbFile;
 		private String name;
@@ -56,7 +58,7 @@ public class Catalog {
      * Creates a new, empty catalog.
      */
     public Catalog() {
-        // some code goes here
+		// Constructor. Instantiate the table container.
     	this.tables = new Vector<Table>();
     }
 
@@ -70,7 +72,7 @@ public class Catalog {
      * conflict exists, use the last table to be added as the table for a given name.
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-        // some code goes here
+		// Add a table to the container.
     	tables.add(new Table(file, name, pkeyField));
     }
 
@@ -94,7 +96,6 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public int getTableId(String name) throws NoSuchElementException {
-        // some code goes here
     	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
     		Table table = it.next();
     		if (table.getTableName() == name) {
@@ -111,7 +112,6 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-        // some code goes here
     	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
     		Table table = it.next();
     		if (table.getTableId() == tableid) {
@@ -128,7 +128,6 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-        // some code goes here
     	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
     		Table table = it.next();
     		if (table.getTableId() == tableid) {
@@ -139,7 +138,6 @@ public class Catalog {
     }
 
     public String getPrimaryKey(int tableid) {
-        // some code goes here
     	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
     		Table table = it.next();
     		if (table.getTableId() == tableid) {
@@ -150,7 +148,7 @@ public class Catalog {
     }
 
     public Iterator<Integer> tableIdIterator() {
-        // some code goes here
+		// Implement the iteratoer as an anonymous class.
         return new Iterator<Integer>() {
 
 			@Override
@@ -174,7 +172,6 @@ public class Catalog {
     }
 
     public String getTableName(int id) {
-        // some code goes here
     	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
     		Table table = it.next();
     		if (table.getTableId() == id) {
@@ -186,7 +183,6 @@ public class Catalog {
     
     /** Delete all tables from the catalog */
     public void clear() {
-        // some code goes here
     	this.tables.removeAllElements();
     }
     

@@ -1,3 +1,4 @@
+// Apr. 17, 2014. Code commented by Xi Han.
 package simpledb;
 
 import java.io.*;
@@ -15,9 +16,9 @@ import java.util.*;
  */
 public class HeapFile implements DbFile {
 
-	private File file;
-	private TupleDesc td;
-	private int maxPageNo;
+	private File file; // The related file.
+	private TupleDesc td; // The related tuple descriptor.
+	private int maxPageNo; // The upper limit of the page number.
 	
 	
     /**
@@ -28,7 +29,7 @@ public class HeapFile implements DbFile {
      *            file.
      */
     public HeapFile(File f, TupleDesc td) {
-        // some code goes here
+		// Initialize the instance variables.
     	this.file = f;
     	this.td = td;
     	this.maxPageNo = (int) f.length() / BufferPool.getPageSize() - 1;
@@ -40,7 +41,6 @@ public class HeapFile implements DbFile {
      * @return the File backing this HeapFile on disk.
      */
     public File getFile() {
-        // some code goes here
         return this.file;
     }
 
@@ -54,7 +54,6 @@ public class HeapFile implements DbFile {
      * @return an ID uniquely identifying this HeapFile.
      */
     public int getId() {
-        // some code goes here
         return this.file.getAbsoluteFile().hashCode();
     }
 
@@ -64,31 +63,29 @@ public class HeapFile implements DbFile {
      * @return TupleDesc of this DbFile.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
         return this.td;
     }
 
     // see DbFile.java for javadocs
     public Page readPage(PageId pid) {
-        // some code goes here
+		// Calculate the offset of the file.
     	int pageNo = pid.pageNumber();
     	int offset = BufferPool.getPageSize() * pageNo;
-    	byte[] data = new byte[BufferPool.getPageSize()];
+    	byte[] data = new byte[BufferPool.getPageSize()]; // Set up the buffer.
     	RandomAccessFile raf = null;
     	try {
 			raf = new RandomAccessFile(this.file, "r");
+			// Move the file pointer to the offset we calculated.
 			raf.seek((long) offset); 
 			raf.read(data, 0, BufferPool.getPageSize());
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			e.printStackTrace();
+			e.printStackTrace();	
 		}
         try {
 			return new HeapPage((HeapPageId) pid, data);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		} finally {
@@ -110,7 +107,6 @@ public class HeapFile implements DbFile {
      * Returns the number of pages in this HeapFile.
      */
     public int numPages() {
-        // some code goes here
         return (int) (this.file.length() / BufferPool.getPageSize());
     }
 
@@ -132,15 +128,17 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
-        // some code goes here
+		// Implement the iterator as an anonymous class to avoid additional files.
         return new DbFileIterator() {
 
+			// Variables to keep the state of the iterator.
         	private int currentPageNo = 0;
         	private Page currentPage = null;
         	private PageId currentPageId = null;
         	private Iterator<Tuple> tuples = null;
         	private TransactionId tid = null;
         	
+			// Method for setting the transaction id of the iterator.
         	private DbFileIterator setTid(TransactionId tid) {
         		this.tid = tid;
         		return this;
@@ -148,6 +146,7 @@ public class HeapFile implements DbFile {
         	
 			@Override
 			public void open() throws DbException, TransactionAbortedException {
+				// Initialize the state.
 				int tableId = HeapFile.this.getId();
 				this.currentPageId = new HeapPageId(tableId, this.currentPageNo);
 				this.currentPage = Database.getBufferPool().getPage(tid, this.currentPageId, null);
@@ -157,12 +156,16 @@ public class HeapFile implements DbFile {
 			@Override
 			public boolean hasNext() throws DbException,
 					TransactionAbortedException {
-				// TODO Auto-generated method stub
 				if (this.tuples != null) {
+					// If the tuple we hold is null, then the iterotor is closed.
+					// If not, keep going.
 					if (this.tuples.hasNext()) {
+						// If tuples has more items, return true.
 						return true;
 					} else {
 						if (this.currentPageNo < HeapFile.this.maxPageNo) {
+							// If current held tuple is full, check if current page is the last page.
+							// If not, move to next page and recursively call this function.
 							int tableId = HeapFile.this.getId();
 							this.currentPageNo++;
 							this.currentPageId = new HeapPageId(tableId, this.currentPageNo);
@@ -178,7 +181,6 @@ public class HeapFile implements DbFile {
 			@Override
 			public Tuple next() throws DbException,
 					TransactionAbortedException, NoSuchElementException {
-				// TODO Auto-generated method stub
 				if (this.tuples != null) {
 					return this.tuples.next();
 				} else {
@@ -189,7 +191,7 @@ public class HeapFile implements DbFile {
 			@Override
 			public void rewind() throws DbException,
 					TransactionAbortedException {
-				// TODO Auto-generated method stub
+				// Simply reset our state.
 				int tableId = HeapFile.this.getId();
 				this.currentPageNo = 0;
 				this.currentPageId = new HeapPageId(tableId, this.currentPageNo);
@@ -199,7 +201,7 @@ public class HeapFile implements DbFile {
 
 			@Override
 			public void close() {
-				// TODO Auto-generated method stub
+				// Invalidate the state variables.
 				this.currentPageNo = 0;
 				this.currentPageId = null;
 				this.currentPage = null;

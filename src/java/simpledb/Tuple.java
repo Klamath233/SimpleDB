@@ -1,3 +1,4 @@
+// Apr 17, 2014. Code Commented by Xi Han.
 package simpledb;
 
 import java.io.Serializable;
@@ -28,7 +29,6 @@ public class Tuple implements Serializable {
      *            instance with at least one field.
      */
     public Tuple(TupleDesc td) {
-        // some code goes here
     	if (td != null) {
     		this.schema = td;
     		this.fields = new Vector<Field>();
@@ -45,7 +45,6 @@ public class Tuple implements Serializable {
      * @return The TupleDesc representing the schema of this tuple.
      */
     public TupleDesc getTupleDesc() {
-        // some code goes here
         return this.schema;
     }
 
@@ -54,7 +53,6 @@ public class Tuple implements Serializable {
      *         be null.
      */
     public RecordId getRecordId() {
-        // some code goes here
         return this.rid;
     }
 
@@ -65,7 +63,6 @@ public class Tuple implements Serializable {
      *            the new RecordId for this tuple.
      */
     public void setRecordId(RecordId rid) {
-        // some code goes here
     	this.rid = rid;
     }
 
@@ -78,7 +75,6 @@ public class Tuple implements Serializable {
      *            new value for the field.
      */
     public void setField(int i, Field f) {
-        // some code goes here
     	this.fields.set(i, f);
     }
 
@@ -89,7 +85,6 @@ public class Tuple implements Serializable {
      *            field index to return. Must be a valid index.
      */
     public Field getField(int i) {
-        // some code goes here
         return this.fields.get(i);
     }
 
@@ -102,7 +97,6 @@ public class Tuple implements Serializable {
      * where \t is any whitespace, except newline, and \n is a newline
      */
     public String toString() {
-        // some code goes here
     	StringBuffer sb = new StringBuffer("");
         for (int i = 0; i < this.fields.size(); i++) {
         	sb.append(this.fields.get(i).toString());
@@ -121,7 +115,6 @@ public class Tuple implements Serializable {
      * */
     public Iterator<Field> fields()
     {
-        // some code goes here
         return this.fields.iterator();
     }
     
@@ -130,7 +123,6 @@ public class Tuple implements Serializable {
      * */
     public void resetTupleDesc(TupleDesc td)
     {
-        // some code goes here
     	this.schema = td;
     	this.fields = new Vector<Field>(td.numFields());
     }

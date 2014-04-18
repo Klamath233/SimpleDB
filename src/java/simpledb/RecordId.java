@@ -1,3 +1,4 @@
+// Apr 17, 2014. Code commented by Xi Han.
 package simpledb;
 
 import java.io.Serializable;
@@ -23,7 +24,6 @@ public class RecordId implements Serializable {
      *            the tuple number within the page.
      */
     public RecordId(PageId pid, int tupleno) {
-        // some code goes here
     	this.pid = pid;
     	this.tupleno = tupleno;
     }
@@ -32,7 +32,6 @@ public class RecordId implements Serializable {
      * @return the tuple number this RecordId references.
      */
     public int tupleno() {
-        // some code goes here
         return this.tupleno;
     }
 
@@ -40,7 +39,6 @@ public class RecordId implements Serializable {
      * @return the page id this RecordId references.
      */
     public PageId getPageId() {
-        // some code goes here
         return this.pid;
     }
 
@@ -52,7 +50,6 @@ public class RecordId implements Serializable {
      */
     @Override
     public boolean equals(Object o) {
-        // some code goes here
     	if (o instanceof RecordId) {
     		RecordId other = (RecordId) o;
     		if (this.pid.equals(other.getPageId()) && this.tupleno == other.tupleno()) {
@@ -70,8 +67,6 @@ public class RecordId implements Serializable {
      */
     @Override
     public int hashCode() {
-        // some code goes here
-        
         int code = (this.pid.hashCode() << 16) & 0xFFFF0000;
         code |= this.tupleno & 0x0000FFFF;
         return code;

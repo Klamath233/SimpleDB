@@ -1,3 +1,4 @@
+// Apr 17, 2014. Code commented by Xi Han.
 package simpledb;
 
 import java.util.*;
@@ -66,8 +67,6 @@ public class HeapPage implements Page {
         @return the number of tuples on this page
     */
     private int getNumTuples() {        
-        // some code goes here
-    	
         return (BufferPool.getPageSize() * 8) / (td.getSize() * 8 + 1);
 
     }
@@ -77,8 +76,6 @@ public class HeapPage implements Page {
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
     private int getHeaderSize() {        
-        
-        // some code goes here
         return (int) Math.ceil( (double) this.getNumTuples() / 8);
                  
     }
@@ -112,7 +109,6 @@ public class HeapPage implements Page {
      * @return the PageId associated with this page.
      */
     public HeapPageId getId() {
-    // some code goes here
     	return this.pid;
     }
 
@@ -282,7 +278,8 @@ public class HeapPage implements Page {
      * Returns the number of empty slots on this page.
      */
     public int getNumEmptySlots() {
-        // some code goes here
+		// Implement this function with isSlotUsed function.
+		// For every slot unused, increment the accumulator.
     	int accumulator = 0;
     	for (int i = 0; i < this.numSlots; i++) {
     		if (!this.isSlotUsed(i)) {
@@ -296,7 +293,6 @@ public class HeapPage implements Page {
      * Returns true if associated slot on this page is filled.
      */
     public boolean isSlotUsed(int i) {
-        // some code goes here
     	int byteNo = i / 8;
 		int bitOffset = i % 8;
 		
@@ -322,7 +318,7 @@ public class HeapPage implements Page {
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
     public Iterator<Tuple> iterator() {
-        // some code goes here
+		// Anonymous iterator.
         return new Iterator<Tuple>() {
 
         	private int lastPtr = -1;

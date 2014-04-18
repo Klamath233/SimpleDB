@@ -1,3 +1,4 @@
+// Apr 17, 2014. Code commented by Xi Han.
 package simpledb;
 
 import java.io.*;
@@ -21,7 +22,7 @@ public class BufferPool {
     /** Bytes per page, including header. */
     public static final int PAGE_SIZE = 4096;
 
-    private static int pageSize = PAGE_SIZE;
+    private static int pageSize = PAGE_SIZE; // Page size used by the pool.
     
     /** Default number of pages passed to the constructor. This is used by
     other classes. BufferPool should use the numPages argument to the
@@ -29,8 +30,8 @@ public class BufferPool {
     public static final int DEFAULT_PAGES = 50;
     
     // Comments needed.
-    private ConcurrentHashMap<PageId, Page> pool;
-    private int maxSize;
+    private ConcurrentHashMap<PageId, Page> pool; // The container of the pages.
+    private int maxSize; // The max page number of the pool.
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -38,7 +39,7 @@ public class BufferPool {
      * @param numPages maximum number of pages in this buffer pool.
      */
     public BufferPool(int numPages) {
-        // some code goes here
+		// Instantiate instance variables.
     	this.maxSize = numPages;
     	this.pool = new ConcurrentHashMap<PageId, Page>();
     }
@@ -69,15 +70,21 @@ public class BufferPool {
      */
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
-        // some code goes here
+        // First, try to get the page from the buffer pool.
     	Page page = this.pool.get(pid);
     	if (page != null) {
+			// On success, return the page.
     		return page;
     	} else {
+			// On failure, read the file from the disk.
     		page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
     		if (this.pool.size() == this.maxSize) {
+				// If the pool is full, throw an exception instead of evict a
+				// page at this time.
     			throw new DbException("Error: full BufferPool!");
     		}
+
+			// Put the page into the buffer.
     		this.pool.put(pid, page);
     		return page;
     	}
