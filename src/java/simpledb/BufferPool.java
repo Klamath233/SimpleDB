@@ -33,6 +33,7 @@ public class BufferPool {
     private ConcurrentHashMap<PageId, Page> pool; // The container of the pages.
     private int maxSize; // The max page number of the pool.
 
+    private ConcurrentHashMap<PageId, Integer> lruCache;
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -42,6 +43,7 @@ public class BufferPool {
 		// Instantiate instance variables.
     	this.maxSize = numPages;
     	this.pool = new ConcurrentHashMap<PageId, Page>();
+        this.lruCache = new ConcurrentHashMap<PageId,Integer>();
     }
     
     public static int getPageSize() {
@@ -73,18 +75,24 @@ public class BufferPool {
         // First, try to get the page from the buffer pool.
     	Page page = this.pool.get(pid);
     	if (page != null) {
+            // Do LRU Cache update
+            for(PageId piddd: this.lruCache.keySet())
+            {
+                int times = this.lruCache.get(piddd); 
+                this.lruCache.replace(piddd,times+1);
+            }
+            this.lruCache.replace(pid,1);
 			// On success, return the page.
     		return page;
     	} else {
 			// On failure, read the file from the disk.
     		page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
     		if (this.pool.size() == this.maxSize) {
-				// If the pool is full, throw an exception instead of evict a
-				// page at this time.
-    			throw new DbException("Error: full BufferPool!");
+                this.evictPage(); // Do eviction
     		}
 
 			// Put the page into the buffer.
+            this.lruCache.put(pid,1);
     		this.pool.put(pid, page);
     		return page;
     	}
@@ -185,9 +193,16 @@ public class BufferPool {
      *     break simpledb if running in NO STEAL mode.
      */
     public synchronized void flushAllPages() throws IOException {
-        // some code goes here
-        // not necessary for lab1
-
+        // flush all dirty pages to disk
+        // we can simply use for loop and flush clean page as well
+        for(PageId pid:this.pool.keySet())
+        {
+            Page p = this.pool.get(pid);
+            if (p.isDirty() != null)
+            {
+                this.flushPage(pid);
+            }
+        }
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -205,8 +220,19 @@ public class BufferPool {
      * @param pid an ID indicating the page to flush
      */
     private synchronized void flushPage(PageId pid) throws IOException {
-        // some code goes here
-        // not necessary for lab1
+        DbFile df = Database.getCatalog().getDatabaseFile(pid.getTableId());
+        Page to_be_written = this.pool.get(pid);
+        // if no matching page in hashmap, we do not need to flush
+        if ( to_be_written == null)
+        {
+            return;
+        }
+        else
+        {
+            df.writePage(to_be_written); // write
+            to_be_written.markDirty(false,null); // mark clean
+
+        }
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -221,8 +247,26 @@ public class BufferPool {
      * Flushes the page to disk to ensure dirty pages are updated on disk.
      */
     private synchronized void evictPage() throws DbException {
-        // some code goes here
-        // not necessary for lab1
+        PageId temppid = null;
+        int tempmax = 1;
+        for(PageId pid: this.lruCache.keySet())
+        {
+            int v = this.lruCache.get(pid);
+            if(v >= tempmax)
+            {
+                temppid = pid;
+                tempmax = v;
+            }
+        }
+        if (temppid == null)
+        {
+            throw new DbException("Should exist victim page!\n");
+        }
+        else
+        {
+            this.lruCache.remove(temppid);
+            this.pool.remove(temppid);
+        }
     }
 
 }

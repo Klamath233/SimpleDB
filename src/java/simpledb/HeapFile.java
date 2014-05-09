@@ -99,8 +99,20 @@ public class HeapFile implements DbFile {
 
     // see DbFile.java for javadocs
     public void writePage(Page page) throws IOException {
-        // some code goes here
-        // not necessary for lab1
+        int pagenumber = page.getId().pageNumber();
+        int offset = pagenumber * BufferPool.PAGE_SIZE;
+        byte[] data = page.getPageData();
+        try{
+            RandomAccessFile raf = new RandomAccessFile(this.file, "rw");
+            raf.seek(offset);
+            raf.write(data);
+            raf.close();
+        }
+        catch  (FileNotFoundException e)
+        {
+            e.printStackTrace();
+        }
+        // Runhang: Notice, we should not catch IOException!
     }
 
     /**
