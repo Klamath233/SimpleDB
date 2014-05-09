@@ -103,7 +103,7 @@ public class IntegerAggregator implements Aggregator {
 				// TODO Auto-generated method stub
 				this.hasNoGroupBeenAccessed = false;
 				this.groupIt = groups.values().iterator();				
-				if (!groupIt.hasNext()) {
+				if (!groupIt.hasNext() && nogroup.tuples.isEmpty()) {
 					throw new DbException("IntegerAggregator: open failed");
 				}
 				

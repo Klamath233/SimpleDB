@@ -108,7 +108,12 @@ public class TupleDesc implements Serializable {
         } catch (ArrayIndexOutOfBoundsException e) {
         	throw new NoSuchElementException();
         }
-        return fieldName;
+        
+        if (fieldName == null) {
+        	return "null";
+        } else {
+        	return fieldName;
+        }
     }
 
     /**
@@ -126,6 +131,7 @@ public class TupleDesc implements Serializable {
         try {
         	fieldType = this.items.get(i).fieldType;
         } catch (ArrayIndexOutOfBoundsException e) {
+        	System.out.println(i);
         	throw new NoSuchElementException();
         }
         return fieldType;

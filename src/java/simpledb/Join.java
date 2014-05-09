@@ -121,6 +121,7 @@ public class Join extends Operator {
         // some code goes here
     	
     	// Iteration.
+    	do {
     	if (!this.child2.hasNext()) {
     		if (!this.child1.hasNext()) {
     			return null;
@@ -139,6 +140,7 @@ public class Join extends Operator {
     		}
     		this.right = child2.next();
     	}
+    	} while (!this.left.getField(this.joinPredicate.getField1()).compare(this.joinPredicate.operator, this.right.getField(this.joinPredicate.getField2())));
     	
     	Tuple retval = new Tuple(this.getTupleDesc());
     	int newTupleFieldPtr = 0;
