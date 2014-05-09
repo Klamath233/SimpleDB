@@ -28,7 +28,8 @@ public class Filter extends Operator {
         // some code goes here
     	this.predicate = p;
     	this.child = child;
-    	this.children = null;
+    	this.children = new DbIterator[1];
+    	this.children[0] = child;
     }
 
     public Predicate getPredicate() {

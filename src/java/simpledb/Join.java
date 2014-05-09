@@ -36,7 +36,10 @@ public class Join extends Operator {
     	this.child2 = child2;
     	this.left = null;
     	this.right = null;
-    	this.children = null;
+    	
+    	this.children = new DbIterator[2];
+    	this.children[0] = child1;
+    	this.children[1] = child2;
     }
 
     public JoinPredicate getJoinPredicate() {

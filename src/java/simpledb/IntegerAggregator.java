@@ -26,16 +26,6 @@ public class IntegerAggregator implements Aggregator {
      * @param what
      *            the aggregation operator
      */
-
-    private class IntGroup {
-    	IntField gbField;
-    	Vector<Tuple> tuples;
-    	
-    	public IntGroup(IntField gbField) {
-    		this.gbField = gbField;
-    		this.tuples = new Vector<Tuple>();
-    	}
-    }
     
     // Private Variables
     int gbField;
@@ -43,12 +33,9 @@ public class IntegerAggregator implements Aggregator {
     int aggrField;
     int tupNum;
     Op aggrOperator;
-    HashMap<IntField, IntGroup> groups;
-    IntGroup nogroup;
+    HashMap<Field, Group> groups;
+    Group nogroup;
     String groupName;
-    
-    // If no group, the groups vector will have only one tuple.
-    // Otherwise, it will be filled with the groups.
     
     public IntegerAggregator(int gbfield, Type gbfieldtype, int afield, Op what) {
         // some code goes here
@@ -56,8 +43,8 @@ public class IntegerAggregator implements Aggregator {
     	this.gbFieldType = gbfieldtype;
     	this.aggrField = afield;
     	this.aggrOperator = what;
-    	this.groups = new HashMap<IntField, IntGroup>();
-    	this.nogroup = new IntGroup(null);
+    	this.groups = new HashMap<Field, Group>();
+    	this.nogroup = new Group(null);
     	this.groupName = null;
     }
 
@@ -85,12 +72,12 @@ public class IntegerAggregator implements Aggregator {
     		// Case 2: grouping.
     		// If the group for gbField exists, add the tuple into that group.
     		// Otherwise, create a group and add the tuple.
-    		if (this.groups.containsKey((IntField) tup.getField(this.gbField))) {
-    			this.groups.get((IntField) tup.getField(this.gbField)).tuples.add(tup);
+    		if (this.groups.containsKey(tup.getField(this.gbField))) {
+    			this.groups.get(tup.getField(this.gbField)).tuples.add(tup);
     		} else {
-    			IntGroup newGroup = new IntGroup((IntField) tup.getField(this.gbField));
+    			Group newGroup = new Group(tup.getField(this.gbField));
     			newGroup.tuples.add(tup);
-    			this.groups.put((IntField) tup.getField(this.gbField), newGroup);
+    			this.groups.put(tup.getField(this.gbField), newGroup);
     		}
     	}
     }
@@ -107,23 +94,25 @@ public class IntegerAggregator implements Aggregator {
         // some code goes here
         return new DbIterator() {
         	
-        	Iterator<IntGroup> groupIt;
+        	Iterator<Group> groupIt;
         	TupleDesc td;
+        	boolean hasNoGroupBeenAccessed;
         	
 			@Override
 			public void open() throws DbException, TransactionAbortedException {
 				// TODO Auto-generated method stub
+				this.hasNoGroupBeenAccessed = false;
 				this.groupIt = groups.values().iterator();				
 				if (!groupIt.hasNext()) {
 					throw new DbException("IntegerAggregator: open failed");
 				}
 				
 				if (groupName != null) {
-					Type[] typeAr = {Type.INT_TYPE, Type.INT_TYPE};
+					Type[] typeAr = {gbFieldType, Type.INT_TYPE};
 					String[] nameAr = {groupName, aggrOperator.toString()};
 					td = new TupleDesc(typeAr, nameAr);
 				} else {
-					Type[] typeAr = {Type.INT_TYPE};
+					Type[] typeAr = {gbFieldType};
 					String[] nameAr = {aggrOperator.toString()};
 					td = new TupleDesc(typeAr, nameAr);
 				}
@@ -133,14 +122,27 @@ public class IntegerAggregator implements Aggregator {
 			public boolean hasNext() throws DbException,
 					TransactionAbortedException {
 				// TODO Auto-generated method stub
-				return this.groupIt.hasNext();
+				if (gbField != Aggregator.NO_GROUPING) {
+					return this.groupIt.hasNext();
+				} else {
+					return !this.hasNoGroupBeenAccessed;
+				}
 			}
 
 			@Override
 			public Tuple next() throws DbException,
 					TransactionAbortedException, NoSuchElementException {
 				// TODO Auto-generated method stub
-				IntGroup currentGroup = this.groupIt.next();
+				
+				Group currentGroup = null;
+				
+				if (gbField != Aggregator.NO_GROUPING) {
+					currentGroup = this.groupIt.next();
+				} else {
+					currentGroup = nogroup;
+					this.hasNoGroupBeenAccessed = true;
+				}
+				
 				int acc = 0;
 				
 				if (aggrOperator == Op.AVG) {
@@ -152,6 +154,7 @@ public class IntegerAggregator implements Aggregator {
 				
 				if (aggrOperator == Op.COUNT) {
 					for (Iterator<Tuple> it = currentGroup.tuples.iterator(); it.hasNext();) {
+						it.next();
 						acc++;
 					}
 				}
@@ -196,6 +199,7 @@ public class IntegerAggregator implements Aggregator {
 			public void rewind() throws DbException,
 					TransactionAbortedException {
 				this.groupIt = groups.values().iterator();
+				this.hasNoGroupBeenAccessed = false;
 			}
 
 			@Override
@@ -208,6 +212,7 @@ public class IntegerAggregator implements Aggregator {
 			public void close() {
 				// TODO Auto-generated method stub
 				this.groupIt = null;
+				this.hasNoGroupBeenAccessed = true;
 			}
         };
     }

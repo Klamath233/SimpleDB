@@ -1,6 +1,7 @@
 package simpledb;
 
 import java.io.Serializable;
+import java.util.Vector;
 
 /**
  * The common interface for any class that can compute an aggregate over a
@@ -9,11 +10,22 @@ import java.io.Serializable;
 public interface Aggregator extends Serializable {
     static final int NO_GROUPING = -1;
 
+    public class Group {
+    	Field gbField;
+    	Vector<Tuple> tuples;
+    	
+    	public Group(Field gbField) {
+    		this.gbField = gbField;
+    		this.tuples = new Vector<Tuple>();
+    	}
+    }
+    
     /**
      * SUM_COUNT and SC_AVG will
      * only be used in lab6, you are not required
      * to implement them until then.
      * */
+    
     public enum Op implements Serializable {
         MIN, MAX, SUM, AVG, COUNT,
         /**
@@ -33,6 +45,7 @@ public interface Aggregator extends Serializable {
          *
          * @param s a string containing a valid integer Op index
          */
+        
         public static Op getOp(String s) {
             return getOp(Integer.parseInt(s));
         }
