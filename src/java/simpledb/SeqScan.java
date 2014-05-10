@@ -106,7 +106,7 @@ public class SeqScan implements DbIterator {
     }
 
     public boolean hasNext() throws TransactionAbortedException, DbException {
-        return this.iterator.hasNext();
+        return this.iterator != null && this.iterator.hasNext();
     }
 
     public Tuple next() throws NoSuchElementException,

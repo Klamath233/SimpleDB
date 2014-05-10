@@ -271,6 +271,7 @@ public class HeapPage implements Page {
         // some code goes here
         // not necessary for lab1
     	if (this.getNumEmptySlots() == 0 || !this.td.equals(t.getTupleDesc())) {
+    		
     		throw new DbException("HeapPage: insert error");
     	}
     	

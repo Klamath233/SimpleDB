@@ -130,7 +130,7 @@ public class HeapFile implements DbFile {
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        for (int i = 0; i < this.maxPageNo; i++) {
+        for (int i = 0; i < this.numPages(); i++) {
         	HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, new HeapPageId(this.getId(), i), null);
         	try {
         		page.insertTuple(t);
@@ -141,7 +141,16 @@ public class HeapFile implements DbFile {
         		continue;
         	}
         }
-        throw new DbException("HeapFile: fail to insert");
+        
+		// Need a new page.
+        byte[] data = new byte[BufferPool.getPageSize()];
+        for (int i = 0; i < BufferPool.getPageSize(); i++) {
+        	data[i] = 0;
+        }
+        
+        HeapPage newPage = new HeapPage(new HeapPageId(this.getId(), this.numPages()), data);
+        this.writePage(newPage);
+        return insertTuple(tid, t); 
         // not necessary for lab1
     }
 
