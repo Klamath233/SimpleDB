@@ -126,7 +126,18 @@ public class HeapFile implements DbFile {
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        return null;
+        for (int i = 0; i < this.maxPageNo; i++) {
+        	HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, new HeapPageId(this.getId(), i), null);
+        	try {
+        		page.insertTuple(t);
+        		ArrayList<Page> retali = new ArrayList<Page>();
+        		retali.add(page);
+        		return retali;
+        	} catch (DbException e) {
+        		continue;
+        	}
+        }
+        throw new DbException("HeapFile: fail to insert");
         // not necessary for lab1
     }
 
@@ -134,7 +145,18 @@ public class HeapFile implements DbFile {
     public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
         // some code goes here
-        return null;
+    	for (int i = 0; i < this.maxPageNo; i++) {
+        	HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, new HeapPageId(this.getId(), i), null);
+        	try {
+        		page.deleteTuple(t);
+        		ArrayList<Page> retali = new ArrayList<Page>();
+        		retali.add(page);
+        		return retali;
+        	} catch (DbException e) {
+        		continue;
+        	}
+        }
+        throw new DbException("HeapFile: fail to insert");
         // not necessary for lab1
     }
 

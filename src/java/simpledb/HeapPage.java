@@ -247,6 +247,17 @@ public class HeapPage implements Page {
     public void deleteTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+    	for (int i = 0; i < this.tuples.length; i++) {
+    		if (this.tuples[i] != null && this.tuples[i].equals(t)) {
+    			this.tuples[i] = null;
+    			this.markDirty(true, null);
+    			this.markSlotUsed(i, false);
+    			t.setRecordId(null);
+    			return;
+    		}
+    	}
+    	// Xi: Shouldn't get here.
+    	throw new DbException("HeapPage: failed to delete page");
     }
 
     /**
@@ -259,6 +270,19 @@ public class HeapPage implements Page {
     public void insertTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+    	if (this.getNumEmptySlots() == 0 || !this.td.equals(t.getTupleDesc())) {
+    		throw new DbException("HeapPage: insert error");
+    	}
+    	
+    	for (int i = 0; i < this.numSlots; i++) {
+    		if (!isSlotUsed(i)) {
+    			t.setRecordId(new RecordId(this.pid, i));
+    			this.tuples[i] = t;
+    			this.markDirty(true, tid);
+    			this.markSlotUsed(i, true);
+    			break;
+    		}
+    	}
     }
 
     /**
@@ -326,6 +350,14 @@ public class HeapPage implements Page {
     private void markSlotUsed(int i, boolean value) {
         // some code goes here
         // not necessary for lab1
+    	int byteNo = i / 8;
+		int bitOffset = i % 8;
+
+		if (value == false) {
+			this.header[byteNo] &= ~( (byte) 1 << bitOffset);
+		} else {
+			this.header[byteNo] |= ( (byte) 1 << bitOffset);
+		}
     }
 
     /**
