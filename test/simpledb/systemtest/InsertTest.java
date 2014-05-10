@@ -28,6 +28,7 @@ public class InsertTest extends SimpleDbTestBase {
 //        Query q = new Query(insOp, tid);
         insOp.open();
         boolean hasResult = false;
+        
         while (insOp.hasNext()) {
             Tuple tup = insOp.next();
             assertFalse(hasResult);
