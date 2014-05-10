@@ -89,6 +89,8 @@ public class BufferPool {
     		page = Database.getCatalog().getDatabaseFile(pid.getTableId()).readPage(pid);
     		if (this.pool.size() == this.maxSize) {
                 this.evictPage(); // Do eviction
+                //System.err.println(this.pool.size()+1 == this.maxSize);
+                //System.err.println(this.maxSize);
     		}
 
 			// Put the page into the buffer.
@@ -267,6 +269,11 @@ public class BufferPool {
         }
         else
         {
+            for(PageId pid: this.lruCache.keySet())
+            {
+                int times = this.lruCache.get(pid); 
+                this.lruCache.replace(pid,times+1);
+            }
             this.lruCache.remove(temppid);
             this.pool.remove(temppid);
         }
