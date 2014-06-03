@@ -1,0 +1,120 @@
+### SimpleDB
+A dumb DBMS implemented in Java
+
+### Developer
+
+Xi Han 504136747 xihan94@ucla.edu
+
+Runhang Li 204134617 marklrh@gmail.com
+
+### Logistics
+
+#### An overlook
+Database provides a group of static objects: Catalog, Buffer pool, log
+
+              Catalog                                     Buffer pool
+                 |                                             |
+               Tables                              ConcurrentHashMap<PageID,Page>
+                 |                                           
+     DbFile, TableName, TablePrimaryKey
+        |
+    File,TupleDesc,maxPageNo
+            |
+          TDitem
+
+
+#### Design decisions
+We start our project by implementing some basic data structures, which are
+Fields, Tuples and TupleDesc. Since TupleDesc will be used to describe 
+the type and the name of each field inside a tuple, we start implementing
+TupleDesc. Each field inside a tuple is being described by TDItem, which 
+is a component inside TupleDesc. We decide that TDItem should have private 
+variable fieldType and fieldName and we then write some public function like
+constructor and toString for TDItem.
+
+TupleDesc should contain a vector of TDItem. After figuring our private 
+variables in TupleDesc, it is then quite easy for us to implement those 
+public functions inside TupleDesc.
+
+After implementing TupleDesc, we can now implement Tuple. Tuple should 
+consist of one TupleDesc which will describe this tuple, one vector of Field 
+that stores a group of data and a record id that identifies this tuple. Then,
+we just need few lines to implement for public methods.
+
+BufferPool serves as a cache in this DBMS. We saw in the template that this 
+class needs java.util.concurrent.ConcurrentHashMap. Therefore, we decide 
+the following private variable inside Bufferpool class: a pool of type 
+concurrent hash map that maps "PageID" to "Page" and an integer that 
+records the maximum page that this bufferpool can hold. It is quite easy 
+to implement constructor, getpagesize and setpagesize so I will focus on 
+introducing how we design getpage method. For getpage method, we try to 
+retrieve page from hashmap. If we cannot find corresponding page in 
+hashmap, hashmap will return null pointer, in which case we will try 
+to put <pageid, page> in map unless we already reached the maximum 
+number of page we can insert.
+
+Then, we try to implement HeapPageId, RecordID, HeapPage together.
+First, we decide to implement RecordID. From the constructor, we can
+know that RecordID contains two variable: one PageID that identifies
+the page that tuple stays in and one Tupleno that identifies the position
+in which this tuple stays in the corresponding page. It is easy to implement
+constructor and some trivial public methods. However, the hashcode() function
+requires some consideration. As professor suggested on Piazza, we decide to 
+take the most significant 16 bits of the hashcode of Pageid and then 
+concatenate it with the least significant 16 bits of tupleno to create 
+hashcode for RecordID.
+
+HeapPageId serves as a unique identifies for HeapPage object. Again, from
+the constructor, we can know that HeapPageId holds two private variables:
+tid which identifies the table in which the page resides in and pid which
+identifies the position in which this page resides in the corresponding
+table. We then write some public methods and finish hashcode() method by 
+concatenating the most significant 16 bits of pid with the least 16 bits 
+of the hashcode of tid to create hashcode.
+
+Next, we implement HeapPage. After careful consideration, we believe HeapPage
+should have private variables: a HeapPageID which identifies this HeapPage, 
+a TupleDesc which describes the tuples this HeapPage stores, an array of tuples,
+number of slots that will be used to store tuples, and an array of bytes as a header
+to indicate if a slot is being used. We can easily implement getnumtuples
+and getheadersize by reading hints in skeleton code. Then, we try to implement isSlotUsed.
+Think header as a table. When we divide argument "i" in isSlotUsed function by eight, 
+the result we get is the row number and the mod we get is the column number. In this way,
+we can locate the position of the bit we want to examine. We then do some bit
+manipulation to extract the bit we want and compare it with zero to see if this slot
+has been used. Then, for getNumEmptySlots, we can just loop through the header to get the
+number of bits that have been used. For iterator(), we return an iterator object in which
+we write overridding methods. Finally, we implemented HeapFile. HeapFile should contain
+a File object, a tupledesc, an integer that records the maximum number of pages, which
+should be file.length()/BufferPool.getPageSize(). Inside HeapFile class, there
+are some functions that require careful consideration. The first one is readPage.Readpage
+will read a stream of data from file. The starting position when reading is specified
+by pagesize()*pageNo and from that starting position, we read a continuous stream of data.
+Specifically, we use RandomAccessFile class provided by Java SDK to do reading, as specified
+in the spec. The most difficult one is DbIterator() method. We implement several
+overridding methods so that this DbIterator can iterate the tuples specified by
+tableid and pageid.
+
+Finally, we implement the SeqScan. SeqScan class should have private variables:
+tableid, tablesAlias, and a DbIterator. After implementing DbIterator, it is quite
+easy for us to implement methods related to iterator in SeqScan class by just calling
+corresponding methods on iterator variable in this class.
+
+#### Any changes we made to the API
+None
+
+#### Any missing or incomplete elements in code
+None
+
+#### Hours spent
+Four
+
+
+
+
+
+
+
+
+
+
