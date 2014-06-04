@@ -50,3 +50,30 @@ Step 4: simpedb.Parser.parseQueryLogicalPlan()
   6. It returns logical plan.
 
 Step 5. simpledb.LogicPlan.physicalPlan()
+  1. It iterates over the table, it gets the name of each table and the 
+  corresponding SeqScan and put them into hashmap. For each table, it also sets
+  the selectivity of the table to 1.0, as default
+
+  2. It iterates over the filters. 
+  For each filter, it gets the corresponding
+  subPlan iterator. Then, get the field f and type ftyp based TupleDusc td.
+  Then, it adds the name of table and corresponding filter into the hashmap
+  subplanMap. Then, it gets the tableStats and use it to get the selectivty. 
+  Finally, it gets the current selectivity and multiplies with new selectivity
+  it just got and then puts the new value into hashmap
+
+  3. It iterate over the joins.
+  For each join, it gets its first plan and the second plan (it is possible 
+  the second plan is a subplan). Then, it uses join optimizer which takes
+  one join iterator, and two plans it just got to produce a new iterator.
+  If this join is not a subquery join, it update the name of t2 in equivMap.
+  Then, it sets all table whose name is equal to t2 to t1 to keep equivMap
+  updated. Finally, it checks if it only has one subPlan left.
+
+  4. It iterates over the selection list. For each selection,
+  it collects the outField num and outTypes. Then, it generate aggregation
+  node if there exists aggregation and then generate orderby if there exists
+  orderby. 
+
+  5. Finally, it returns a new Project objected constructed with
+  outFields, outTypes and node
