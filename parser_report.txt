@@ -1,0 +1,52 @@
+
+
+Step 1: simpledb.Parser.main() and simpledb.Parser.start() simpledb.Parser.main() is the entry point for the SimpleDB system. It calls simpledb.Parser.start(). The latter performs three main actions:
+
+  1. It populates the SimpleDB catalog from the catalog text file provided 
+  by the user as argument (Database.getCatalog().loadSchema(argv[0]);).
+
+  2. For each table defined in the system catalog, it computes statistics 
+  over the data in the table by calling: TableStats.computeStatistics(), 
+  which for each table does: TableStats s = new TableStats(tableid, IOCOSTPERPAGE);
+
+  3. It processes the statements submitted by the 
+  user (processNextStatement(new ByteArrayInputStream(statementBytes));)
+
+----------------------------------------------------------
+
+Step 2: simpledb.Parser.processNextStatement() 
+  This method takes two key actions:
+  First, it gets a physical plan for the query by invoking handleQueryStatement((ZQuery)s);
+  Then it executes the query by calling query.execute();
+
+-------------------------------------------------------
+
+Step 3: simpledb.Parser.handleQueryStatement() 
+  1. It firsts builds logic plan by calling
+  simpledb.Parser.parseQueryLogicalPlan
+  
+  2. After getting the logical plan "lp", it calls lp's method "physicalPlan" which
+     finds the optimal plan
+
+Step 4: simpedb.Parser.parseQueryLogicalPlan()
+  1. It first goes over each table name in the FROM clause and call simpledb.LogicalPlan.addScan()
+  to add table into logical plan.
+
+  2. It then goes to process WHERE clause by calling
+  simpledb.Parser.processExpression to add 
+  corresponding filter into logic plan
+
+  3. It then goes to parse GROUP BY clause. It identifies the attribute and then set the value 
+  of the GROUP BY field.
+
+  4. It then goes over the SELECT clause. It identifies the aggregation field using getValue()
+  and aggregation method (min, max, etc) using getAggregate() and add them using simpledb.Parser.addProjectField(). Or it picks out the column we want to project as specified in the SELECT clause
+
+  5. Finally, it processes ORDER BY. It identifies the attribute it needs to order and
+  the order it needs to order by calling getOrderBy() and calling getExpression() to process
+  the result. Then, it identifies the attribute it needs to order and the order(ascending or descending) it needs to order. Finally, it uses addOrderBy to add order by information into 
+  logical plan.
+
+  6. It returns logical plan.
+
+Step 5. simpledb.LogicPlan.physicalPlan()
