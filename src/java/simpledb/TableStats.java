@@ -3,6 +3,8 @@ package simpledb;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -17,6 +19,12 @@ public class TableStats {
 
     static final int IOCOSTPERPAGE = 1000;
 
+    private TupleDesc td;
+    private Vector<Object> histograms;
+    private int numtuples;
+    private int ioCostPerPage;
+    private int tableid;
+    
     public static TableStats getTableStats(String tablename) {
         return statsMap.get(tablename);
     }
@@ -85,6 +93,119 @@ public class TableStats {
         // necessarily have to (for example) do everything
         // in a single scan of the table.
         // some code goes here
+    	
+    	// Get the table from tableid.
+    	this.tableid = tableid;
+    	this.td = Database.getCatalog().getTupleDesc(tableid);
+    	this.numtuples = 0;
+    	this.histograms = new Vector<Object>();
+    	this.ioCostPerPage = ioCostPerPage;
+    	// Scan to get the number of tuples in the table.
+    	SeqScan ss = new SeqScan(null, tableid, "TableStats");
+    	try {
+			ss.open();
+			while (ss.hasNext()) {
+				ss.next();
+				this.numtuples++;
+			}
+			ss.close();
+		} catch (DbException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionAbortedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+    	
+    	// For each column, build a histogram.
+    	// Specifically, use Aggregators to get the MIN and MAX value of the integer column.
+    	
+    	int arity = this.td.numFields();
+    	for (int i = 0; i < arity; i++) {
+    		if (this.td.getFieldType(i) == Type.INT_TYPE) {
+    			// We need to get the minimum and the maximum values for the column.
+    			Aggregate minAggr = new Aggregate(ss, i, -1, Aggregator.Op.MIN);
+    			int min = 0;
+    			try {
+					minAggr.open();
+					if (minAggr.hasNext()) {
+						Tuple t = minAggr.next();
+						min = ((IntField) t.getField(0)).getValue();
+					}
+					minAggr.close();
+				} catch (NoSuchElementException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (DbException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TransactionAbortedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+    			
+    			Aggregate maxAggr = new Aggregate(ss, i, -1, Aggregator.Op.MAX);
+    			int max = 0;
+    			try {
+					maxAggr.open();
+					if (maxAggr.hasNext()) {
+						Tuple t = maxAggr.next();
+						max = ((IntField) t.getField(0)).getValue();
+					}
+					maxAggr.close();
+				} catch (NoSuchElementException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (DbException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TransactionAbortedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+    			
+    			// SeqScan the file and feed the histogram.
+    			int buckets = NUM_HIST_BINS;
+    			IntHistogram hist = new IntHistogram(buckets, min, max);
+    			
+    			try {
+					ss.open();
+					while (ss.hasNext()) {
+						hist.addValue(((IntField) ss.next().getField(i)).getValue());
+					}
+					ss.close();
+				} catch (DbException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TransactionAbortedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+    			
+    			this.histograms.add(hist);
+    		} else {
+    			// We just scan the file and feed a StringHistogram.
+    			StringHistogram hist = new StringHistogram(NUM_HIST_BINS); 
+    			
+    			try {
+					ss.open();
+					while (ss.hasNext()) {
+						hist.addValue(((StringField) ss.next().getField(i)).getValue());
+					}
+					ss.close();
+				} catch (DbException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (TransactionAbortedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+    			
+    			this.histograms.add(hist);
+    			
+    		}
+    	}
+    	
     }
 
     /**
@@ -100,8 +221,10 @@ public class TableStats {
      * @return The estimated cost of scanning the table.
      */
     public double estimateScanCost() {
-        // some code goes here
-        return 0;
+		// some code goes here
+    	
+    	int numpages = ((HeapFile) Database.getCatalog().getDatabaseFile(this.tableid)).numPages();
+        return (double) numpages * (double) this.ioCostPerPage;
     }
 
     /**
@@ -115,7 +238,7 @@ public class TableStats {
      */
     public int estimateTableCardinality(double selectivityFactor) {
         // some code goes here
-        return 0;
+        return (int) (selectivityFactor * this.numtuples);
     }
 
     /**
@@ -130,7 +253,12 @@ public class TableStats {
      * */
     public double avgSelectivity(int field, Predicate.Op op) {
         // some code goes here
-        return 1.0;
+    	Object o = this.histograms.get(field);
+    	if (o instanceof IntHistogram) {
+    		return ((IntHistogram) o).avgSelectivity();
+    	} else {
+    		return ((StringHistogram) o).avgSelectivity();
+    	}
     }
 
     /**
@@ -148,15 +276,19 @@ public class TableStats {
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
         // some code goes here
-        return 1.0;
+    	Object o = this.histograms.get(field);
+    	if (o instanceof IntHistogram) {
+    		return ((IntHistogram) o).estimateSelectivity(op, ((IntField) constant).getValue());
+    	} else {
+    		return ((StringHistogram) o).estimateSelectivity(op, ((StringField) constant).getValue());
+    	}
     }
 
     /**
      * return the total number of tuples in this table
      * */
     public int totalTuples() {
-        // some code goes here
-        return 0;
+        return this.numtuples;
     }
 
 }

@@ -60,8 +60,8 @@ public class IntHistogram {
     		numBucs = numNums;
     	}
     	int cursor = this.min;
-    	this.floorWidth = (int) Math.floor((double) (numNums / numBucs));
-    	this.ceilingWidth = (int) Math.ceil((double) (numNums / numBucs));
+    	this.floorWidth = (int) Math.floor((double) numNums / (double) numBucs);
+    	this.ceilingWidth = (int) Math.ceil((double) numNums / (double) numBucs);
     	this.firstCeiling = 0;
     	boolean completeDetectingFC = false;
     	
@@ -100,7 +100,7 @@ public class IntHistogram {
     	if (offset < this.floorWidth * this.firstCeiling) {
     		return offset / this.floorWidth;
     	} else {
-    		return this.firstCeiling + (offset - this.firstCeiling * this.firstCeiling) / this.ceilingWidth;
+    		return this.firstCeiling + (offset - this.firstCeiling * this.floorWidth) / this.ceilingWidth;
     	}
     }
     /**
@@ -201,8 +201,13 @@ public class IntHistogram {
      * */
     public double avgSelectivity()
     {
-        // some code goes here
-        return 1.0;
+    	int acc = 0;
+        for (int i = 0; i < numBuckets; i++) {
+        	int height = this.buckets.get(i).b_height;
+        	acc += height * height;
+        }
+        
+        return (double) acc / (double) (count * count);
     }
     
     /**
