@@ -290,25 +290,40 @@ public class LogicalPlan {
         HashMap<String,Double> filterSelectivities = new HashMap<String, Double>();
         HashMap<String,TableStats> statsMap = new HashMap<String,TableStats>();
 
+        // ----------------------------------
+        // iterate over table vector
+        // ----------------------------------
         while (tableIt.hasNext()) {
             LogicalScanNode table = tableIt.next();
             SeqScan ss = null;
             try {
+                 // get seqscan of that table
                  ss = new SeqScan(t, Database.getCatalog().getDatabaseFile(table.t).getId(), table.alias);
             } catch (NoSuchElementException e) {
                 throw new ParsingException("Unknown table " + table.t);
             }
             
+            // add table.alias and corresponding iterator into hashtable subplanMap
             subplanMap.put(table.alias,ss);
             String baseTableName = Database.getCatalog().getTableName(table.t);
+
+            // add the name of the table and the stats of table into hashtable statsMap 
             statsMap.put(baseTableName, baseTableStats.get(baseTableName));
+
+            // add the name of the table and the selectivity of the table, which is default to be 1.0
+            // into hashtable filterSectivities
             filterSelectivities.put(table.alias, 1.0);
 
         }
 
+        // ----------------------------------
+        // iterate over filters
+        // ----------------------------------
         Iterator<LogicalFilterNode> filterIt = filters.iterator();        
         while (filterIt.hasNext()) {
             LogicalFilterNode lf = filterIt.next();
+
+            // using hashmap, get the iterator of this table
             DbIterator subplan = subplanMap.get(lf.tableAlias);
             if (subplan == null) {
                 throw new ParsingException("Unknown table in WHERE clause " + lf.tableAlias);
@@ -316,8 +331,11 @@ public class LogicalPlan {
 
             Field f;
             Type ftyp;
+
+            // get tuple descriptor
             TupleDesc td = subplanMap.get(lf.tableAlias).getTupleDesc();
             
+            // get the type according to tuple desc
             try {//td.fieldNameToIndex(disambiguateName(lf.fieldPureName))
                 ftyp = td.getFieldType(td.fieldNameToIndex(lf.fieldQuantifiedName));
             } catch (java.util.NoSuchElementException e) {
@@ -334,18 +352,34 @@ public class LogicalPlan {
             } catch (NoSuchElementException e) {
                 throw new ParsingException("Unknown field " + lf.fieldQuantifiedName);
             }
+
+            // add subPlan, filter table name and new filter into subPlan hashtable
             subplanMap.put(lf.tableAlias, new Filter(p, subplan));
 
+
+            // get table stats of the current table
             TableStats s = statsMap.get(Database.getCatalog().getTableName(this.getTableId(lf.tableAlias)));
             
+            // according tablestats, call estimate selecitity, based on field, predicate, and constant
             double sel= s.estimateSelectivity(subplan.getTupleDesc().fieldNameToIndex(lf.fieldQuantifiedName), lf.p, f);
+
+            // get old selectivity, multiplying new selectivity,
+            // add tablename, selectivity into hashmap
             filterSelectivities.put(lf.tableAlias, filterSelectivities.get(lf.tableAlias) * sel);
 
             //s.addSelectivityFactor(estimateFilterSelectivity(lf,statsMap));
         }
         
+
+        // ----------------------------------
+        // iterate over join
+        // ----------------------------------
         JoinOptimizer jo = new JoinOptimizer(this,joins);
 
+        /* 
+        Compute a logical, reasonably efficient join on the specified tables. See
+        project description for hints on how this should be implemented.
+        */
         joins = jo.orderJoins(statsMap,filterSelectivities,explain);
 
         Iterator<LogicalJoinNode> joinIt = joins.iterator();
