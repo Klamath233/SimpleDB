@@ -1,0 +1,66 @@
+========================
+Exercise 5.1
+We first test the following query on 1% imdb database:
+select d.fname, d.lname
+from Actor a, Casts c, Movie_Director m, Director d
+where a.id=c.pid and c.mid=m.mid and m.did=d.id 
+and a.fname='John' and a.lname='Spicer';
+
+The output goes like the following:
+The query plan is:
+                            π(d.fname,d.lname),card:1
+                            |
+                            ⨝(a.id=c.pid),card:1
+  __________________________|___________________________
+  |                                                    |
+  σ(a.lname=Spicer),card:1                             ⨝(m.mid=c.mid),card:3008
+  |                                    ________________|_________________
+  σ(a.fname=John),card:1               |                                |
+  |                                    ⨝(d.id=m.did),card:278           |
+  |                           _________|_________                       |
+  |                           |                 |                     scan(Casts c)
+scan(Actor a)               scan(Director d)  scan(Movie_Director m)
+
+d.fname d.lname 
+------------------------
+Chris Malazdrewicz
+
+Thomas  Parkinson
+
+Alain Zaloum
+
+
+ 3 rows.
+Transaction 0 committed.
+----------------
+2.66 seconds
+
+As we can see, the query optimizer which uses left-deep plan tries to 
+join tables with small selectivity first, which will eliminate larger
+amount of invalid tuples in early steps. This will help reduce number
+of I/Os in total
+
+============================
+Exercise 5.2
+We tried another query:
+
+select d.fname, d.lname
+from Casts c, Movie_Director m, Director d
+where c.mid=m.mid and m.did=d.id 
+and d.fname='John';
+
+The query plan is:
+                  π(d.fname,d.lname),card:3008
+                  |
+                  ⨝(d.id=m.did),card:3008
+  ________________|_________________
+  |                                |
+  σ(d.fname=John),card:1           ⨝(c.mid=m.mid),card:3008
+  |                         _______|________
+scan(Director d)            |              |
+                          scan(Casts c)  scan(Movie_Director m)
+
+The decision of query optimizer is similar with the previous one.
+It chooses the steps in the order of their selectivities. If an
+step gives up max selectivity, it chooses it first, as shown
+in the plan illustration above.
