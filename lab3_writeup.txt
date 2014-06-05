@@ -1,0 +1,170 @@
+Name: Xi Han UID: 504136747
+Name: Runhang Li UID: 204134617
+
+* Design decisions
+We basically followed the instruction on the website. We carefully read the 
+optimal join algorithm and followed it step by step. 
+
+* Design and justify API
+We substitute our Catalog.java with Ethan's solution.
+
+* Missing elements
+None.
+
+* Hours we spent
+8 hours
+
+
+
+
+====================================================================================
+
+Exercise 1:
+
+Step 1: simpledb.Parser.main() and simpledb.Parser.start() simpledb.Parser.main() is the entry point for the SimpleDB system. It calls simpledb.Parser.start(). The latter performs three main actions:
+
+  1. It populates the SimpleDB catalog from the catalog text file provided 
+  by the user as argument (Database.getCatalog().loadSchema(argv[0]);).
+
+  2. For each table defined in the system catalog, it computes statistics 
+  over the data in the table by calling: TableStats.computeStatistics(), 
+  which for each table does: TableStats s = new TableStats(tableid, IOCOSTPERPAGE);
+
+  3. It processes the statements submitted by the 
+  user (processNextStatement(new ByteArrayInputStream(statementBytes));)
+
+----------------------------------------------------------
+
+Step 2: simpledb.Parser.processNextStatement() 
+  This method takes two key actions:
+  First, it gets a physical plan for the query by invoking handleQueryStatement((ZQuery)s);
+  Then it executes the query by calling query.execute();
+
+-------------------------------------------------------
+
+Step 3: simpledb.Parser.handleQueryStatement() 
+  1. It firsts builds logic plan by calling
+  simpledb.Parser.parseQueryLogicalPlan
+  
+  2. After getting the logical plan "lp", it calls lp's method "physicalPlan" which
+     finds the optimal plan
+
+Step 4: simpedb.Parser.parseQueryLogicalPlan()
+  1. It first goes over each table name in the FROM clause and call simpledb.LogicalPlan.addScan()
+  to add table into logical plan.
+
+  2. It then goes to process WHERE clause by calling
+  simpledb.Parser.processExpression to add 
+  corresponding filter into logic plan
+
+  3. It then goes to parse GROUP BY clause. It identifies the attribute and then set the value 
+  of the GROUP BY field.
+
+  4. It then goes over the SELECT clause. It identifies the aggregation field using getValue()
+  and aggregation method (min, max, etc) using getAggregate() and add them using simpledb.Parser.addProjectField(). Or it picks out the column we want to project as specified in the SELECT clause
+
+  5. Finally, it processes ORDER BY. It identifies the attribute it needs to order and
+  the order it needs to order by calling getOrderBy() and calling getExpression() to process
+  the result. Then, it identifies the attribute it needs to order and the order(ascending or descending) it needs to order. Finally, it uses addOrderBy to add order by information into 
+  logical plan.
+
+  6. It returns logical plan.
+
+Step 5. simpledb.LogicPlan.physicalPlan()
+  1. It iterates over the table, it gets the name of each table and the 
+  corresponding SeqScan and put them into hashmap. For each table, it also sets
+  the selectivity of the table to 1.0, as default
+
+  2. It iterates over the filters. 
+  For each filter, it gets the corresponding
+  subPlan iterator. Then, get the field f and type ftyp based TupleDusc td.
+  Then, it adds the name of table and corresponding filter into the hashmap
+  subplanMap. Then, it gets the tableStats and use it to get the selectivty. 
+  Finally, it gets the current selectivity and multiplies with new selectivity
+  it just got and then puts the new value into hashmap
+
+  3. It iterate over the joins.
+  For each join, it gets its first plan and the second plan (it is possible 
+  the second plan is a subplan). Then, it uses join optimizer which takes
+  one join iterator, and two plans it just got to produce a new iterator.
+  If this join is not a subquery join, it update the name of t2 in equivMap.
+  Then, it sets all table whose name is equal to t2 to t1 to keep equivMap
+  updated. Finally, it checks if it only has one subPlan left.
+
+  4. It iterates over the selection list. For each selection,
+  it collects the outField num and outTypes. Then, it generate aggregation
+  node if there exists aggregation and then generate orderby if there exists
+  orderby. 
+
+  5. Finally, it returns a new Project objected constructed with
+  outFields, outTypes and node
+
+========================
+Exercise 6:
+
+
+5.1:
+We first test the following query on 1% imdb database:
+select d.fname, d.lname
+from Actor a, Casts c, Movie_Director m, Director d
+where a.id=c.pid and c.mid=m.mid and m.did=d.id 
+and a.fname='John' and a.lname='Spicer';
+
+The output goes like the following:
+The query plan is:
+                            π(d.fname,d.lname),card:1
+                            |
+                            ⨝(a.id=c.pid),card:1
+  __________________________|___________________________
+  |                                                    |
+  σ(a.lname=Spicer),card:1                             ⨝(m.mid=c.mid),card:3008
+  |                                    ________________|_________________
+  σ(a.fname=John),card:1               |                                |
+  |                                    ⨝(d.id=m.did),card:278           |
+  |                           _________|_________                       |
+  |                           |                 |                     scan(Casts c)
+scan(Actor a)               scan(Director d)  scan(Movie_Director m)
+
+d.fname d.lname 
+------------------------
+Chris Malazdrewicz
+
+Thomas  Parkinson
+
+Alain Zaloum
+
+
+ 3 rows.
+Transaction 0 committed.
+----------------
+2.66 seconds
+
+As we can see, the query optimizer which uses left-deep plan tries to 
+join tables with small selectivity first, which will eliminate larger
+amount of invalid tuples in early steps. This will help reduce number
+of I/Os in total
+
+
+5.2:
+We tried another query:
+
+select d.fname, d.lname
+from Casts c, Movie_Director m, Director d
+where c.mid=m.mid and m.did=d.id 
+and d.fname='John';
+
+The query plan is:
+                  π(d.fname,d.lname),card:3008
+                  |
+                  ⨝(d.id=m.did),card:3008
+  ________________|_________________
+  |                                |
+  σ(d.fname=John),card:1           ⨝(c.mid=m.mid),card:3008
+  |                         _______|________
+scan(Director d)            |              |
+                          scan(Casts c)  scan(Movie_Director m)
+
+The decision of query optimizer is similar with the previous one.
+It chooses the steps in the order of their selectivities. If an
+step gives up max selectivity, it chooses it first, as shown
+in the plan illustration above.
