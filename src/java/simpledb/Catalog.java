@@ -1,4 +1,4 @@
-// Apr 17, 2014. Code commented by Xi Han.
+// Use Ethan's Catalog.java
 
 package simpledb;
 
@@ -19,48 +19,23 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Threadsafe
  */
 public class Catalog {
-
-	// A table class is declared to represent a relation.
-	private class Table {
-		private DbFile dbFile;
-		private String name;
-		private String pkeyField;
-		public Table(DbFile file, String name, String pkeyField) {
-			this.dbFile = file;
-			this.name = name;
-			this.pkeyField = pkeyField;
-		}
-		
-		public int getTableId() {
-			return this.dbFile.getId();
-		}
-		
-		public TupleDesc getTupleDesc() {
-			return this.dbFile.getTupleDesc();
-		}
-		
-		public DbFile getDatabaseFile() {
-			return this.dbFile;
-		}
-		
-		public String getPrimaryKey() {
-			return this.pkeyField;
-		}
-		
-		public String getTableName() {
-			return this.name;
-		}
-	}
 	
-	private Vector<Table> tables;
+	private Vector<DbFile> fileItself;
+	private Vector<String> fileName;
+	private Vector<String> fileKey;
+	private Vector<Integer> fileId;
     /**
      * Constructor.
      * Creates a new, empty catalog.
      */
-    public Catalog() {
-		// Constructor. Instantiate the table container.
-    	this.tables = new Vector<Table>();
-    }
+    
+	public Catalog()
+	{
+		fileItself = new Vector<DbFile>();
+		fileName = new Vector<String>();
+		fileKey = new Vector<String>();
+		fileId = new Vector<Integer>();
+	}
 
     /**
      * Add a new table to the catalog.
@@ -72,10 +47,26 @@ public class Catalog {
      * conflict exists, use the last table to be added as the table for a given name.
      */
     public void addTable(DbFile file, String name, String pkeyField) {
-		// Add a table to the container.
-    	tables.add(new Table(file, name, pkeyField));
+    	
+    	if(fileId.contains(file.getId()))
+    	{
+    		int index = fileId.indexOf(file.getId());
+   			fileItself.set(index, file);
+    		fileName.set(index, name);
+    		fileKey.set(index, pkeyField);
+   		}
+    	else
+    	{
+   			fileItself.add(file);
+   			fileName.add(name);
+    		fileId.add(file.getId());
+    		fileKey.add(pkeyField);
+    	}
+    	
+    	return;
     }
-
+    
+    
     public void addTable(DbFile file, String name) {
         addTable(file, name, "");
     }
@@ -95,14 +86,11 @@ public class Catalog {
      * Return the id of the table with a specified name,
      * @throws NoSuchElementException if the table doesn't exist
      */
-    public int getTableId(String name) throws NoSuchElementException {
-    	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
-    		Table table = it.next();
-    		if (table.getTableName() == name) {
-    			return table.getTableId();
-    		}
-    	}
-        throw new NoSuchElementException();
+    public int getTableId(String name) throws NoSuchElementException {    	
+    	if(fileName.contains(name))
+    		return fileId.get(fileName.indexOf(name));
+    	else
+    		throw new NoSuchElementException("The name does not exist!");
     }
 
     /**
@@ -112,13 +100,13 @@ public class Catalog {
      * @throws NoSuchElementException if the table doesn't exist
      */
     public TupleDesc getTupleDesc(int tableid) throws NoSuchElementException {
-    	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
-    		Table table = it.next();
-    		if (table.getTableId() == tableid) {
-    			return table.getTupleDesc();
-    		}
+    	if(fileId.contains(tableid))
+    	{
+    		DbFile tmpFile = fileItself.get(fileId.indexOf(tableid));
+    		return tmpFile.getTupleDesc();
     	}
-        throw new NoSuchElementException();    
+    	else
+    		throw new NoSuchElementException("The tableid does not exist!");
     }
 
     /**
@@ -128,62 +116,36 @@ public class Catalog {
      *     function passed to addTable
      */
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
-    	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
-    		Table table = it.next();
-    		if (table.getTableId() == tableid) {
-    			return table.getDatabaseFile();
-    		}
-    	}
-        throw new NoSuchElementException(); 
+    	if(fileId.contains(tableid))
+    		return fileItself.get(fileId.indexOf(tableid));
+    	else
+    		throw new NoSuchElementException("The tableid does not exist!");
     }
 
     public String getPrimaryKey(int tableid) {
-    	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
-    		Table table = it.next();
-    		if (table.getTableId() == tableid) {
-    			return table.getPrimaryKey();
-    		}
-    	}
-        throw new NoSuchElementException(); 
+    	if(fileId.contains(tableid))
+    		return fileKey.get(fileId.indexOf(tableid));
+    	else
+    		throw new NoSuchElementException("The tableid does not exist!");
     }
 
     public Iterator<Integer> tableIdIterator() {
-		// Implement the iteratoer as an anonymous class.
-        return new Iterator<Integer>() {
-
-			@Override
-			public boolean hasNext() {
-				return Catalog.this.tables.iterator().hasNext();
-			}
-
-			@Override
-			public Integer next() {
-				// TODO Auto-generated method stub
-				return Catalog.this.tables.iterator().next().getTableId();
-			}
-
-			@Override
-			public void remove() {
-				// TODO Auto-generated method stub
-				Catalog.this.tables.iterator().remove();
-			}
-        	
-        };
+        return fileId.iterator();
     }
 
     public String getTableName(int id) {
-    	for (Iterator<Table> it = this.tables.iterator(); it.hasNext();) {
-    		Table table = it.next();
-    		if (table.getTableId() == id) {
-    			return table.getTableName();
-    		}
-    	}
-        throw new NoSuchElementException(); 
+    	if(fileId.contains(id))
+    		return fileName.get(fileId.indexOf(id));
+    	else
+    		throw new NoSuchElementException("The tableid does not exist!");
     }
     
     /** Delete all tables from the catalog */
     public void clear() {
-    	this.tables.removeAllElements();
+    	fileItself.clear();
+    	fileName.clear();
+    	fileKey.clear();
+    	fileId.clear();
     }
     
     /**

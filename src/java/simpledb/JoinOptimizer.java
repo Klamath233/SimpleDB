@@ -111,7 +111,7 @@ public class JoinOptimizer {
             // HINT: You may need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic nested-loops
             // join.
-            return -1.0;
+            return (double) (cost1 + card1 * cost2 + card1 * card2);
         }
     }
 
@@ -156,6 +156,19 @@ public class JoinOptimizer {
             Map<String, Integer> tableAliasToId) {
         int card = 1;
         // some code goes here
+        if (joinOp == Predicate.Op.EQUALS || joinOp == Predicate.Op.NOT_EQUALS) {
+        	if (t1pkey && t2pkey) {
+        		card = (card1 > card2) ? card2 : card1;
+        	} else if (t1pkey && !t2pkey) {
+        		card = card2;
+        	} else if (!t1pkey && t2pkey) {
+        		card = card1;
+        	} else {
+        		card = (card1 > card2) ? card1 : card2;
+        	}
+        } else {
+        	card = (int) (card1 * card2 * 0.3);
+        }
         return card <= 0 ? 1 : card;
     }
 
@@ -212,17 +225,58 @@ public class JoinOptimizer {
      *             when stats or filter selectivities is missing a table in the
      *             join, or or when another internal error occurs
      */
+
+    /*
+    j = set of join nodes
+    for (i in 1...|j|):
+        for s in {all length i subsets of j}
+          bestPlan = {}
+          for s' in {all length d-1 subsets of s}
+               subplan = optjoin(s')
+               plan = best way to join (s-s') to subplan
+               if (cost(plan) < cost(bestPlan))
+                  bestPlan = plan
+          optjoin(s) = bestPlan
+     return optjoin(j)
+    */
     public Vector<LogicalJoinNode> orderJoins(
             HashMap<String, TableStats> stats,
             HashMap<String, Double> filterSelectivities, boolean explain)
             throws ParsingException {
 
-        // See the project writeup for some hints as to how this function
-        // should work.
+        // First, initialize a PlanCache
+        PlanCache pc = new PlanCache();
 
-        // some code goes here
-        //Replace the following
-        return joins;
+        for(int i = 1; i <= joins.size(); i++)
+        {
+            for (Set<LogicalJoinNode> es: enumerateSubsets(joins, i))
+            {
+                Vector<LogicalJoinNode> bestPlan = null; // TO_DO!!!
+                double tempBestSoFar = Double.MAX_VALUE;
+                int tempCard = 0;
+                for(LogicalJoinNode joinToRemove: es)
+                {
+                    CostCard curCC = computeCostAndCardOfSubplan(
+                        stats, filterSelectivities, joinToRemove, es, tempBestSoFar, pc);
+                    if(curCC != null)
+                    {
+                        tempBestSoFar = curCC.cost;
+                        bestPlan = curCC.plan;
+                        tempCard = curCC.card;
+                    }
+                }
+                pc.addPlan(es, tempBestSoFar, tempCard, bestPlan);
+            }
+
+        }
+
+        Set<LogicalJoinNode> tempSet = new HashSet<LogicalJoinNode>();
+        for(Iterator<LogicalJoinNode> it = joins.iterator(); it.hasNext();)
+        {
+            tempSet.add(it.next());
+        }
+        return pc.getOrder(tempSet);
+
     }
 
     // ===================== Private Methods =================================
